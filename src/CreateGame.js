@@ -1,13 +1,8 @@
 import React, { useState } from "react";
-import {
-  Button,
-  FormControl,
-  FormLabel,
-  Grid,
-  Input,
-  Option,
-  Select,
-} from "@mui/joy";
+import { FormControl, FormLabel, Grid, Input, Option, Select } from "@mui/joy";
+
+import { Typography, Button } from "@mui/material";
+import AddIcon from "@mui/icons-material/Add";
 
 const COLOR = {
   red: "#8B0000",
@@ -16,20 +11,24 @@ const COLOR = {
   brown: "#006400",
 };
 
-function GameConfig({ setup }) {
+function CreateGame({ setup }) {
   const [name, setName] = useState("");
-  const [color, setColor] = useState("#000000");
+  const [remainingColors, setRemainingColors] = useState(Object.keys(COLOR));
+  const [color, setColor] = useState(remainingColors[0]);
   const [players, setPlayers] = useState([]);
   const [duration, setDuration] = useState(30);
   const [increment, setIncrement] = useState(0);
 
-  const addPlayer = () => {
-    if (name && color) {
-      setPlayers([...players, { name, color }]);
-      setName("");
-      setColor("#000000");
-    }
-  };
+  React.useEffect(() => {
+    const pickedColors = players.map((player) => player.color);
+    const remainingColors = Object.keys(COLOR).filter(
+      (color) => !pickedColors.some((pickedColor) => pickedColor === color),
+    );
+    setRemainingColors(remainingColors);
+    setColor(remainingColors[0]);
+  }, [players]);
+
+  console.log(color, remainingColors[0]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -40,19 +39,21 @@ function GameConfig({ setup }) {
       activePlayerIndex: 0,
       turnStartTime: null,
       players: players.map((player) => ({
-        name: player.title,
+        name: player.name,
         color: player.color,
         remainingTime: duration * 60,
       })),
     });
   };
 
-  const pickedColors = players.map((player) => player.color);
-  const remainingColors = Object.keys(COLOR).filter(
-    (color) => !pickedColors.some((pickedColor) => pickedColor === color),
-  );
+  const removePlayer = (index) => {
+    setPlayers([...players.slice(0, index), ...players.slice(index + 1)]);
+  };
 
-  console.log(players);
+  const addPlayer = () => {
+    setPlayers([...players, { name, color }]);
+    setName("");
+  };
 
   return (
     <Grid
@@ -62,6 +63,9 @@ function GameConfig({ setup }) {
       component="form"
       onSubmit={handleSubmit}
     >
+      <Grid xs={12}>
+        <Typography variant="h5">Create a Game Clock</Typography>
+      </Grid>
       <Grid xs={12}>
         <FormControl>
           <FormLabel>Initial duration (minutes)</FormLabel>
@@ -92,13 +96,11 @@ function GameConfig({ setup }) {
       </Grid>
 
       <Grid xs={12}>
-        <FormControl>
-          <FormLabel>Players</FormLabel>
-        </FormControl>
+        <Typography variant="body1">Players</Typography>
       </Grid>
 
-      {players.map((player) => (
-        <React.Fragment>
+      {players.map((player, index) => (
+        <React.Fragment key={index}>
           <Grid xs={6}>
             <FormControl>
               <FormLabel>Name</FormLabel>
@@ -107,7 +109,6 @@ function GameConfig({ setup }) {
                 label="Name"
                 value={player.name}
                 disabled={true}
-                // onChange={(e) => setName(e.target.value)}
                 margin="normal"
               />
             </FormControl>
@@ -119,11 +120,23 @@ function GameConfig({ setup }) {
               <Select
                 sx={{ height: "100%" }}
                 defaultValue={player.color}
+                onChange={() => {}}
                 disabled={true}
-              ></Select>
+              >
+                <Option value={player.color}>{player.color}</Option>
+              </Select>
             </FormControl>
           </Grid>
-          <Grid xs={2}></Grid>
+
+          <Grid xs={2} style={{ display: "flex", alignItems: "flex-end" }}>
+            <Button
+              variant="contained"
+              onClick={() => removePlayer(index)}
+              style={{ minWidth: "100%" }}
+            >
+              -
+            </Button>
+          </Grid>
         </React.Fragment>
       ))}
 
@@ -143,7 +156,11 @@ function GameConfig({ setup }) {
       <Grid xs={4}>
         <FormControl sx={{ height: "100%" }}>
           <FormLabel>Color</FormLabel>
-          <Select sx={{ height: "100%" }} defaultValue={remainingColors[0]}>
+          <Select
+            sx={{ height: "100%" }}
+            value={color}
+            onChange={(_, value) => setColor(value)}
+          >
             {remainingColors.map((color) => (
               <Option value={color}>{color}</Option>
             ))}
@@ -151,15 +168,23 @@ function GameConfig({ setup }) {
         </FormControl>
       </Grid>
 
-      <Grid>
-        <Button onClick={addPlayer}>+</Button>
+      <Grid xs={2} style={{ display: "flex", alignItems: "flex-end" }}>
+        <Button
+          variant="contained"
+          onClick={addPlayer}
+          style={{ minWidth: "100%" }}
+        >
+          +
+        </Button>
       </Grid>
 
       <Grid xs={12} textAlign={"center"}>
-        <Button type="submit">Start</Button>
+        <Button variant="contained" type="submit">
+          Create
+        </Button>
       </Grid>
     </Grid>
   );
 }
 
-export default GameConfig;
+export default CreateGame;

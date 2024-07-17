@@ -1,89 +1,115 @@
-import React, {useState} from 'react';
-import {Box, Button, FormControl, InputLabel, MenuItem, Select, TextField, Typography} from '@mui/material';
-import './App.css';
+import React, { useEffect } from "react";
+import { Game } from "./Game";
+import CreateGame from "./CreateGame";
+import Header from "./Header";
 
 function App() {
-  const [name, setName] = useState('');
-  const [color, setColor] = useState('#000000');
-  const [players, setPlayers] = useState([]);
-  const [duration, setDuration] = useState(30);
-  const [increment, setIncrement] = useState(0);
-
-  const addPlayer = () => {
-    if (name && color) {
-      setPlayers([...players, { name, color }]);
-      setName('');
-      setColor('#000000');
-    }
+  const initialState = {
+    initialTime: 1800,
+    increment: 0,
+    isRunning: false,
+    activePlayerIndex: 0,
+    time: null,
+    players: [
+      { color: "#FF0000", remainingTime: 1800 },
+      { color: "#0000FF", remainingTime: 1800 },
+      { color: "#0000FF", remainingTime: 1800 },
+      { color: "#00FF00", remainingTime: 1800 },
+    ],
   };
+  const [state, setState] = React.useState(null);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    console.log('Start Game');
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (!state) {
+        return;
+      }
+
+      if (!state.isRunning) {
+        return;
+      }
+
+      setState((state) => {
+        const time = Date.now();
+        const players = state.players.map((player, index) => {
+          if (index === state.activePlayerIndex) {
+            const elapsedTime = (time - state.time) / 1000;
+            return {
+              ...player,
+              remainingTime: player.remainingTime - elapsedTime,
+            };
+          }
+          return player;
+        });
+
+        return {
+          ...state,
+          time,
+          players,
+        };
+      });
+    }, 100);
+    return () => clearInterval(interval);
+  }, [state]);
+
+  if (state === null) {
+    return (
+      <React.Fragment>
+        <Header />
+        <CreateGame setup={setState} />
+      </React.Fragment>
+    );
   }
 
+  const start = () => {
+    setState((state) => {
+      return {
+        ...state,
+        isRunning: true,
+        time: Date.now(),
+      };
+    });
+  };
+
+  const pause = () => {
+    setState(() => {
+      return {
+        ...state,
+        isRunning: false,
+        time: null,
+      };
+    });
+  };
+
+  const next = () => {
+    setState(() => {
+      // Add increment to the active player's remaining time at the end of their turn
+      const players = state.players.map((player, index) => {
+        if (index === state.activePlayerIndex) {
+          return {
+            ...player,
+            remainingTime: player.remainingTime + state.increment,
+          };
+        }
+        return player;
+      });
+      const nextPlayerIndex =
+        (state.activePlayerIndex + 1) % state.players.length;
+      return {
+        ...state,
+        time: Date.now(),
+        activePlayerIndex: nextPlayerIndex,
+        players,
+      };
+    });
+  };
+
   return (
-    <Box sx={{ maxWidth: 500, mx: 'auto', mt: 4 }} component='form' onSubmit={handleSubmit}>
-      <Typography variant="h4" gutterBottom>Configure Game Clock</Typography>
-      <TextField
-        fullWidth
-        label="Initial Duration (minutes)"
-        type={'number'}
-        variant="outlined"
-        value={duration}
-        onChange={(e) => setDuration(e.target.value)}
-        margin="normal"
-        required={true}
-      />
-      <TextField
-        fullWidth
-        label="Increment (seconds)"
-        type={'number'}
-        variant="outlined"
-        value={increment}
-        onChange={(e) => setIncrement(e.target.value)}
-        margin="normal"
-      />
-      <TextField
-        fullWidth
-        label="Name"
-        variant="outlined"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        margin="normal"
-      />
-      <FormControl required={true} fullWidth variant="outlined" margin="normal">
-        <InputLabel id="color-label">Color</InputLabel>
-        <Select
-          labelId="color-label"
-          value={color}
-          onChange={(e) => setColor(e.target.value)}
-          label="Color"
-        >
-          <MenuItem value="#000000">Black</MenuItem>
-          <MenuItem value="#FF0000">Red</MenuItem>
-          <MenuItem value="#00FF00">Green</MenuItem>
-          <MenuItem value="#0000FF">Blue</MenuItem>
-        </Select>
-      </FormControl>
-      <Button variant="contained" color="primary" onClick={addPlayer}>
-        Add Player
-      </Button>
-
-      <Typography variant="h6" gutterBottom>Players</Typography>
-      {players.map((player, index) => (
-        <Box key={index} display="flex" justifyContent="space-between" alignItems="center" mb={1}>
-          <Typography>{player.name}</Typography>
-          <Box width={24} height={24} bgcolor={player.color} />
-        </Box>
-      ))}
-
-      <Button type="submit" variant="contained" color="primary" sx={{ mt: 2 }}>
-        Start
-      </Button>
-    </Box>
+    <React.Fragment>
+      <Header />
+      <Game state={state} start={start} pause={pause} next={next} />
+    </React.Fragment>
   );
 }
 
 export default App;
-
